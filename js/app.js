@@ -7,7 +7,11 @@ let autoSaveTimer = null;
 function createFolder() {
   const folderName = document.getElementById('newFolderName').value;
   if (folderName) {
-    const folder = { name: folderName, sets: [] };
+    const folder = {
+      id: Date.now().toString(),
+      name: folderName,
+      sets: [],
+    };
     folders.push(folder);
     saveData();
     renderFolders();
@@ -15,90 +19,246 @@ function createFolder() {
   }
 }
 
+function deleteFolder(folderId) {
+  folders = folders.filter((folder) => folder.id !== folderId);
+  saveData();
+  renderFolders();
+}
+
 function createSet() {
   const setName = document.getElementById('newSetName').value;
   if (setName && currentFolder) {
-    const set = { name: setName, title: '', description: '', tags: [], flashcards: [] };
+    const set = {
+      id: Date.now().toString(),
+      name: setName,
+      title: '',
+      description: '',
+      tags: [],
+      flashcards: [],
+    };
     currentFolder.sets.push(set);
+    currentSet = set;
     saveData();
     renderSets();
+    updateSetDetails();
     document.getElementById('newSetName').value = '';
+  }
+}
+
+function deleteSet(setId) {
+  if (currentFolder) {
+    currentFolder.sets = currentFolder.sets.filter((set) => set.id !== setId);
+    saveData();
+    renderSets();
   }
 }
 
 function createFlashcard() {
   const flashcardElement = document.createElement('div');
   flashcardElement.classList.add('flashcard');
+  flashcardElement.dataset.id = Date.now().toString();
   flashcardElement.innerHTML = `
     <input type="text" placeholder="Enter term">
     <textarea placeholder="Enter definition"></textarea>
     <input type="file" accept="image/*">
-    <img src="" alt="Term Image">
+    <img src="" alt="" style="display: none;">
     <input type="file" accept="image/*">
-    <img src="" alt="Definition Image">
+    <img src="" alt="" style="display: none;">
+    <button onclick="deleteFlashcard(this)">Delete</button>
   `;
   flashcardsContainer.appendChild(flashcardElement);
   updateFlashcardPreview();
 }
 
-function saveFlashcard() {
-  const flashcards = document.querySelectorAll('.flashcard');
-  currentSet.flashcards = [];
-  flashcards.forEach((flashcardElement) => {
-    const term = flashcardElement.querySelector('input[type="text"]').value;
-    const definition = flashcardElement.querySelector('textarea').value;
-    const termImage = flashcardElement.querySelector('input[type="file"]').files[0];
-    const definitionImage = flashcardElement.querySelectorAll('input[type="file"]')[1].files[0];
-    const flashcard = { term, definition, termImage: null, definitionImage: null };
-    if (termImage) {
-      const termReader = new FileReader();
-      termReader.onload = function (e) {
-        flashcard.termImage = e.target.result;
-        saveFlashcardToSet(flashcard);
-      };
-      termReader.readAsDataURL(termImage);
-    }
-    if (definitionImage) {
-      const definitionReader = new FileReader();
-      definitionReader.onload = function (e) {
-        flashcard.definitionImage = e.target.result;
-        saveFlashcardToSet(flashcard);
-      };
-      definitionReader.readAsDataURL(definitionImage);
-    }
-    if (!termImage && !definitionImage) {
-      saveFlashcardToSet(flashcard);
-    }
-  });
-  saveData();
-  updateFlashcardPreview();
-}
-
-function saveFlashcardToSet(flashcard) {
-  currentSet.flashcards.push(flashcard);
+function deleteFlashcard(element) {
+  const flashcardElement = element.parentNode;
+  flashcardElement.parentNode.removeChild(flashcardElement);
+  saveSet();
 }
 
 function saveSet() {
   if (currentSet) {
     currentSet.title = document.getElementById('set-title').value;
     currentSet.description = document.getElementById('set-description').value;
-    currentSet.tags = document.getElementById('set-tags').value.split(',').map(tag => tag.trim());
-    saveData();
-    window.location.href = 'set.html?id=' + encodeURIComponent(JSON.stringify(currentSet));
+    currentSet.tags = document.getElementById('set-tags').value.split(',').map((tag) => tag.trim());
+    const flashcards = document.querySelectorAll('.flashcard');
+    const flashcardPromises = Array.from(flashcards).map((flashcardElement) => {
+      const term = flashcardElement.querySelector('input[type="text"]').value;
+      const definition = flashcardElement.querySelector('textarea').value;
+      const termImage = flashcardElement.querySelector('input[type="file"]').files[0];
+      const definitionImage = flashcardElement.querySelectorAll('input[type="file"]')[1].files[0];
+      const flashcard = {
+        id: flashcardElement.dataset.id,
+        term,
+        definition,
+        termImage: null,
+        definitionImage: null,
+      };
+      return new Promise((resolve) => {
+        if (termImage) {
+          const termReader = new FileReader();
+          termReader.onload = function (e) {
+            flashcard.termImage = e.target.result;
+            resolve(flashcard);
+          };
+          termReader.readAsDataURL(termImage);
+        } else if (definitionImage) {
+          const definitionReader = new FileReader();
+          definitionReader.onload = function (e) {
+            flashcard.definitionImage = e.target.result;
+            resolve(flashcard);
+          };
+          definitionReader.readAsDataURL(definitionImage);
+        } else {
+          resolve(flashcard);
+        }
+      });
+    });
+    stopAutoSave();
+    Promise.all(flashcardPromises)
+      .then((flashcards) => {
+        currentSet.flashcards = flashcards;
+        saveData();
+        showNotification('Set saved successfully!');
+        updateFlashcardPreview();
+        if (getViewMode() === 'edit') {
+          enterPreviewMode();
+        }
+      })
+      .catch((error) => {
+        console.error('Error saving flashcards:', error);
+      });
   }
 }
 
+function saveFlashcardToSet(flashcard) {
+  flashcard.id = Date.now().toString();
+  currentSet.flashcards.push(flashcard);
+  updateFlashcardPreview();
+}
+
+function enterPreviewMode(setId) {
+  currentSet = findSetById(setId);
+  if (currentSet) {
+    document.getElementById('set-title-preview').textContent = currentSet.title;
+    document.getElementById('set-description-preview').textContent = currentSet.description;
+    document.getElementById('set-tags-preview').textContent = 'Tags: ' + currentSet.tags.join(', ');
+    renderPreviewFlashcards();
+    setViewMode('preview');
+  }
+}
+
+function enterEditMode() {
+  if (currentSet) {
+    document.getElementById('set-title').value = currentSet.title;
+    document.getElementById('set-description').value = currentSet.description;
+    document.getElementById('set-tags').value = currentSet.tags.join(', ');
+    renderEditFlashcards();
+    setViewMode('edit');
+  }
+}
+
+function enterPracticeMode() {
+  if (currentSet) {
+    currentFlashcard = 0;
+    showFlashcard();
+    setViewMode('practice');
+  }
+}
+
+function findSetById(setId) {
+  for (const folder of folders) {
+    const set = folder.sets.find(set => set.id === setId);
+    if (set) {
+      return set;
+    }
+  }
+  return null;
+}
+
+function renderPreviewFlashcards() {
+  const flashcardsPreview = document.getElementById('flashcards-preview');
+  flashcardsPreview.innerHTML = '';
+  if (currentSet) {
+    currentSet.flashcards.forEach((flashcard) => {
+      const flashcardElement = document.createElement('div');
+      flashcardElement.classList.add('flashcard-preview');
+      flashcardElement.innerHTML = `
+        <h3>${flashcard.term}</h3>
+        <p>${flashcard.definition}</p>
+      `;
+      flashcardsPreview.appendChild(flashcardElement);
+    });
+  }
+}
+
+
+
+function renderEditFlashcards() {
+  const flashcardsContainer = document.getElementById('flashcards-container');
+  flashcardsContainer.innerHTML = '';
+  if (currentSet) {
+    currentSet.flashcards.forEach((flashcard) => {
+      const flashcardElement = document.createElement('div');
+      flashcardElement.classList.add('flashcard');
+      flashcardElement.dataset.id = flashcard.id;
+      flashcardElement.innerHTML = `
+        <input type="text" value="${flashcard.term}">
+        <textarea>${flashcard.definition}</textarea>
+        <button onclick="deleteFlashcard(this)">Delete</button>
+      `;
+      flashcardsContainer.appendChild(flashcardElement);
+    });
+  }
+}
+
+function setViewMode(mode) {
+  const editModeElements = document.querySelectorAll('.edit-mode');
+  const previewModeElements = document.querySelectorAll('.preview-mode');
+  const practiceModeElements = document.querySelectorAll('.practice-mode');
+  if (mode === 'edit') {
+    editModeElements.forEach(element => element.style.display = 'block');
+    previewModeElements.forEach(element => element.style.display = 'none');
+    practiceModeElements.forEach(element => element.style.display = 'none');
+  } else if (mode === 'preview') {
+    editModeElements.forEach(element => element.style.display = 'none');
+    previewModeElements.forEach(element => element.style.display = 'block');
+    practiceModeElements.forEach(element => element.style.display = 'none');
+  } else if (mode === 'practice') {
+    editModeElements.forEach(element => element.style.display = 'none');
+    previewModeElements.forEach(element => element.style.display = 'none');
+    practiceModeElements.forEach(element => element.style.display = 'block');
+  }
+}
 function renderFolders() {
   const folderList = document.getElementById('folderList');
   folderList.innerHTML = '';
-  folders.forEach((folder, index) => {
+  folders.forEach((folder) => {
     const li = document.createElement('li');
     li.textContent = folder.name;
     li.onclick = function () {
       currentFolder = folder;
       renderSets();
+      setActiveFolder(folder.id);
     };
+    const deleteButton = document.createElement('button');
+    deleteButton.textContent = 'Delete';
+    deleteButton.onclick = function (event) {
+      event.stopPropagation();
+      deleteFolder(folder.id);
+    };
+    li.appendChild(deleteButton);
     folderList.appendChild(li);
+  });
+}
+
+function setActiveFolder(folderId) {
+  const folderItems = document.querySelectorAll('#folderList li');
+  folderItems.forEach((item) => {
+    item.classList.remove('active');
+    if (item.textContent.includes(folderId)) {
+      item.classList.add('active');
+    }
   });
 }
 
@@ -106,14 +266,19 @@ function renderSets() {
   const setList = document.getElementById('setList');
   setList.innerHTML = '';
   if (currentFolder) {
-    currentFolder.sets.forEach((set, index) => {
+    currentFolder.sets.forEach((set) => {
       const li = document.createElement('li');
       li.textContent = set.name;
       li.onclick = function () {
-        currentSet = set;
-        renderFlashcards();
-        updateSetDetails();
+        enterPreviewMode(set.id);
       };
+      const deleteButton = document.createElement('button');
+      deleteButton.textContent = 'Delete';
+      deleteButton.onclick = function (event) {
+        event.stopPropagation();
+        deleteSet(set.id);
+      };
+      li.appendChild(deleteButton);
       setList.appendChild(li);
     });
   }
@@ -122,6 +287,10 @@ function renderSets() {
 function renderFlashcards() {
   const flashcardList = document.getElementById('flashcardList');
   flashcardList.innerHTML = '';
+  if (currentSet && currentSet.flashcards.length > 0) {
+    currentFlashcard = 0;
+    showFlashcard();
+  }
   if (currentSet) {
     currentSet.flashcards.forEach((flashcard, index) => {
       const li = document.createElement('li');
@@ -147,6 +316,8 @@ function updateFlashcardPreview() {
   if (currentSet && currentSet.flashcards.length > 0) {
     currentFlashcard = 0;
     showFlashcard();
+  } else {
+    clearFlashcardPreview();
   }
 }
 
@@ -155,8 +326,22 @@ function showFlashcard() {
     const flashcard = currentSet.flashcards[currentFlashcard];
     document.getElementById('questionText').textContent = flashcard.term;
     document.getElementById('answerText').textContent = flashcard.definition;
-    document.getElementById('questionImage').src = flashcard.termImage;
-    document.getElementById('answerImage').src = flashcard.definitionImage;
+    const questionImage = document.getElementById('questionImage');
+    const answerImage = document.getElementById('answerImage');
+    if (flashcard.termImage) {
+      questionImage.src = flashcard.termImage;
+      questionImage.style.display = 'block';
+    } else {
+      questionImage.src = '';
+      questionImage.style.display = 'none';
+    }
+    if (flashcard.definitionImage) {
+      answerImage.src = flashcard.definitionImage;
+      answerImage.style.display = 'block';
+    } else {
+      answerImage.src = '';
+      answerImage.style.display = 'none';
+    }
   }
 }
 
@@ -176,6 +361,13 @@ function nextFlashcard() {
 
 function flipCard(card) {
   card.classList.toggle('is-flipped');
+}
+
+function clearFlashcardPreview() {
+  document.getElementById('questionText').textContent = '';
+  document.getElementById('answerText').textContent = '';
+  document.getElementById('questionImage').src = '';
+  document.getElementById('answerImage').src = '';
 }
 
 function searchFlashcards() {
@@ -201,23 +393,87 @@ function loadData() {
   if (data) {
     folders = JSON.parse(data);
     renderFolders();
+    updateFlashcardPreview();
   }
 }
 
+function showNotification(message) {
+  const notificationsContainer = document.getElementById('notifications');
+  const notification = document.createElement('div');
+  notification.textContent = message;
+  notificationsContainer.appendChild(notification);
+  setTimeout(() => {
+    notificationsContainer.removeChild(notification);
+  }, 3000);
+}
+
 function startAutoSave() {
-  autoSaveTimer = setInterval(saveData, 5000);
+  autoSaveTimer = setInterval(() => {
+    saveSet();
+    showNotification('Autosave: Set saved successfully!');
+    updateFlashcardPreview();
+  }, 2000);
 }
 
 function stopAutoSave() {
   clearInterval(autoSaveTimer);
 }
 
+function loadSetFromURL() {
+  const urlParams = new URLSearchParams(window.location.search);
+  const setId = urlParams.get('id');
+  if (setId) {
+    const data = localStorage.getItem('flashcardData');
+    if (data) {
+      const folders = JSON.parse(data);
+      for (const folder of folders) {
+        const set = folder.sets.find(set => set.id === setId);
+        if (set) {
+          currentSet = set;
+          break;
+        }
+      }
+    }
+  }
+}
+
+//need to add in fixed title, description, tag texts. etc.
+function populateSetForm() {
+  if (currentSet) {
+    document.getElementById('set-title').value = currentSet.title;
+    document.getElementById('set-description').value = currentSet.description;
+    document.getElementById('set-tags').value = currentSet.tags.join(', ');
+    const flashcardsContainer = document.getElementById('flashcards-container');
+    flashcardsContainer.innerHTML = '';
+    currentSet.flashcards.forEach((flashcard) => {
+      const flashcardElement = document.createElement('div');
+      flashcardElement.classList.add('flashcard');
+      flashcardElement.dataset.id = flashcard.id;
+      flashcardElement.innerHTML = `
+        <input type="text" value="${flashcard.term}">
+        <textarea>${flashcard.definition}</textarea>
+        <input type="file" accept="image/*">
+        <img src="${flashcard.termImage || ''}" alt="" style="display: ${flashcard.termImage ? 'block' : 'none'};">
+        <input type="file" accept="image/*">
+        <img src="${flashcard.definitionImage || ''}" alt="" style="display: ${flashcard.definitionImage ? 'block' : 'none'};">
+        <button onclick="deleteFlashcard(this)">Delete</button>
+      `;
+      flashcardsContainer.appendChild(flashcardElement);
+    });
+  }
+}
+
+function getViewMode() {
+  const urlParams = new URLSearchParams(window.location.search);
+  return urlParams.get('mode');
+}
+
+
+
+
 const addFlashcardButton = document.getElementById('add-flashcard');
 const flashcardsContainer = document.getElementById('flashcards-container');
 addFlashcardButton.addEventListener('click', createFlashcard);
-
-const saveFlashcardButton = document.getElementById('save-flashcards');
-saveFlashcardButton.addEventListener('click', saveFlashcard);
 
 const saveSetButton = document.getElementById('save-set');
 saveSetButton.addEventListener('click', saveSet);
@@ -225,5 +481,17 @@ saveSetButton.addEventListener('click', saveSet);
 const searchInput = document.getElementById('search-terms');
 searchInput.addEventListener('input', searchFlashcards);
 
+const editSetButton = document.getElementById('edit-set');
+editSetButton.addEventListener('click', enterEditMode);
+
+const practiceSetButton = document.getElementById('practice-set');
+practiceSetButton.addEventListener('click', enterPracticeMode);
+
 loadData();
-startAutoSave();
+loadSetFromURL();
+setViewMode();
+
+if (getViewMode() === 'edit') {
+  populateSetForm();
+  startAutoSave();
+}

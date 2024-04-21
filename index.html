@@ -20,13 +20,12 @@
 <body>
 <header>
   <nav>
-    <a href="/"><img src="logo.png" alt="Logo"></a>
+    <a href="/"><img src="img/logo.png" id="logo" alt="Logo"></a>
     <ul>
       <li><a href="/">Home</a></li>
       <li><a href="/explore">Explore</a></li>
       <li><a href="/create">Create</a></li>
     </ul>
-    <button>Sign In</button>
   </nav>
 </header>
 <div id="app">
@@ -49,14 +48,12 @@
       <div class="card" onclick="flipCard(this)">
         <div class="card-inner">
           <div class="card-front">
-            <h2>Question</h2>
             <p id="questionText"></p>
-            <img id="questionImage" src="" alt="Question Image">
+            <img id="questionImage" src="img/images.png" alt="" style="display: none;">
           </div>
           <div class="card-back">
-            <h2>Answer</h2>
             <p id="answerText"></p>
-            <img id="answerImage" src="" alt="Answer Image">
+            <img id="answerImage" src="img/images.png" alt="" style="display: none;">
           </div>
         </div>
       </div>
@@ -67,24 +64,42 @@
     </div>
     <div id="setDetails">
       <h2>Set Details</h2>
-      <input type="text" id="set-title" placeholder="Enter a title">
-      <textarea id="set-description" placeholder="Add a description"></textarea>
-      <input type="text" id="set-tags" placeholder="Enter tags (comma-separated)">
-      <button id="save-set">Save Set</button>
+      <div class="edit-mode">
+        <input type="text" id="set-title" placeholder="Enter a title">
+        <textarea id="set-description" placeholder="Add a description"></textarea>
+        <input type="text" id="set-tags" placeholder="Enter tags (comma-separated)">
+        <button id="save-set">Save Set</button>
+      </div>
+      <div class="preview-mode">
+        <h3 id="set-title-preview"></h3>
+        <p id="set-description-preview"></p>
+        <p id="set-tags-preview"></p>
+      </div>
     </div>
     <div id="flashcards">
       <h2>Flashcards</h2>
-      <input type="text" id="search-terms" placeholder="Search terms/definitions">
-      <div id="flashcards-container">
-        <!-- Flashcards will be dynamically added here -->
+      <div class="edit-mode">
+        <input type="text" id="search-terms" placeholder="Search terms/definitions">
+        <div id="flashcards-container">
+          <!-- Flashcards will be dynamically added here -->
+        </div>
+        <button id="add-flashcard">Add Flashcard</button>
       </div>
-      <button id="add-flashcard">Add Flashcard</button>
-      <button id="save-flashcards">Save Flashcards</button>
+      <div class="preview-mode">
+        <div id="flashcards-preview">
+          <!-- Non-editable flashcards will be dynamically added here -->
+        </div>
+      </div>
+    </div>
+    <div class="preview-mode">
+      <button id="practice-set">Practice Set</button>
+      <button id="edit-set">Edit Set</button>
     </div>
   </div>
 </div>
+<div id="notifications"></div>
 <footer>
-  <p>&copy; 2023 Flashcard App. All rights reserved.</p>
+  <p>&copy; 2024 Cards - CS426.</p>
 </footer>
 <script src="js/app.js"></script>
 </body>
