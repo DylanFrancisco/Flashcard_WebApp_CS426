@@ -589,30 +589,29 @@ function getViewMode() {
   return urlParams.get('mode');
 }
 
+document.addEventListener('DOMContentLoaded', function() {
+  const addFlashcardButton = document.getElementById('add-flashcard');
+  const flashcardsContainer = document.getElementById('flashcards-container');
+  addFlashcardButton.addEventListener('click', createFlashcard);
 
+  const saveSetButton = document.getElementById('save-set');
+  saveSetButton.addEventListener('click', saveSet);
 
+  const searchInput = document.getElementById('search-terms');
+  searchInput.addEventListener('input', searchFlashcards);
 
-const addFlashcardButton = document.getElementById('add-flashcard');
-const flashcardsContainer = document.getElementById('flashcards-container');
-addFlashcardButton.addEventListener('click', createFlashcard);
+  const editSetButton = document.getElementById('edit-set');
+  editSetButton.addEventListener('click', enterEditMode);
 
-const saveSetButton = document.getElementById('save-set');
-saveSetButton.addEventListener('click', saveSet);
+  const practiceSetButton = document.getElementById('practice-set');
+  practiceSetButton.addEventListener('click', enterPracticeMode);
 
-const searchInput = document.getElementById('search-terms');
-searchInput.addEventListener('input', searchFlashcards);
+  loadData();
+  loadSetFromURL();
+  setViewMode();
 
-const editSetButton = document.getElementById('edit-set');
-editSetButton.addEventListener('click', enterEditMode);
-
-const practiceSetButton = document.getElementById('practice-set');
-practiceSetButton.addEventListener('click', enterPracticeMode);
-
-loadData();
-loadSetFromURL();
-setViewMode();
-
-if (getViewMode() === 'edit') {
-  populateSetForm();
-  startAutoSave();
-}
+  if (getViewMode() === 'edit') {
+    populateSetForm();
+    startAutoSave();
+  }
+});
