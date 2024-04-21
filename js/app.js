@@ -73,7 +73,8 @@ function createFlashcard() {
 function deleteFlashcard(element) {
   const flashcardElement = element.parentNode;
   flashcardElement.parentNode.removeChild(flashcardElement);
-  saveSet();
+  startAutoSave();
+  updateFlashcardPreview();
 }
 
 function saveSet() {
@@ -85,14 +86,16 @@ function saveSet() {
     const flashcardPromises = Array.from(flashcards).map((flashcardElement) => {
       const term = flashcardElement.querySelector('input[type="text"]').value;
       const definition = flashcardElement.querySelector('textarea').value;
-      const termImage = flashcardElement.querySelector('input[type="file"]').files[0];
-      const definitionImage = flashcardElement.querySelectorAll('input[type="file"]')[1].files[0];
+      const termImageInput = flashcardElement.querySelectorAll('input[type="file"]')[0];
+      const definitionImageInput = flashcardElement.querySelectorAll('input[type="file"]')[1];
+      const termImage = termImageInput.files[0];
+      const definitionImage = definitionImageInput.files[0];
       const flashcard = {
         id: flashcardElement.dataset.id,
         term,
         definition,
-        termImage: null,
-        definitionImage: null,
+        termImage: termImageInput.dataset.image || null,
+        definitionImage: definitionImageInput.dataset.image || null,
       };
       return new Promise((resolve) => {
         if (termImage) {
@@ -114,16 +117,14 @@ function saveSet() {
         }
       });
     });
-    stopAutoSave();
     Promise.all(flashcardPromises)
       .then((flashcards) => {
         currentSet.flashcards = flashcards;
         saveData();
         showNotification('Set saved successfully!');
+        renderPreviewFlashcards();
+        setViewMode('preview');
         updateFlashcardPreview();
-        if (getViewMode() === 'edit') {
-          enterPreviewMode();
-        }
       })
       .catch((error) => {
         console.error('Error saving flashcards:', error);
@@ -140,10 +141,11 @@ function saveFlashcardToSet(flashcard) {
 function enterPreviewMode(setId) {
   currentSet = findSetById(setId);
   if (currentSet) {
-    document.getElementById('set-title-preview').textContent = currentSet.title;
-    document.getElementById('set-description-preview').textContent = currentSet.description;
+    document.getElementById('set-title-preview').textContent = 'Title: ' + currentSet.title;
+    document.getElementById('set-description-preview').textContent = 'Description: ' + currentSet.description;
     document.getElementById('set-tags-preview').textContent = 'Tags: ' + currentSet.tags.join(', ');
     renderPreviewFlashcards();
+    updateFlashcardPreview();
     setViewMode('preview');
   }
 }
@@ -154,6 +156,7 @@ function enterEditMode() {
     document.getElementById('set-description').value = currentSet.description;
     document.getElementById('set-tags').value = currentSet.tags.join(', ');
     renderEditFlashcards();
+    updateFlashcardPreview();
     setViewMode('edit');
   }
 }
@@ -183,6 +186,7 @@ function renderPreviewFlashcards() {
     currentSet.flashcards.forEach((flashcard) => {
       const flashcardElement = document.createElement('div');
       flashcardElement.classList.add('flashcard-preview');
+      flashcardElement.dataset.id = flashcard.id;
       flashcardElement.innerHTML = `
         <h3>${flashcard.term}</h3>
         <p>${flashcard.definition}</p>
@@ -205,6 +209,10 @@ function renderEditFlashcards() {
       flashcardElement.innerHTML = `
         <input type="text" value="${flashcard.term}">
         <textarea>${flashcard.definition}</textarea>
+        <input type="file" accept="image/*" ${flashcard.termImage ? 'data-image="' + flashcard.termImage + '"' : ''}>
+        <img src="${flashcard.termImage || ''}" alt="" style="display: ${flashcard.termImage ? 'block' : 'none'};">
+        <input type="file" accept="image/*" ${flashcard.definitionImage ? 'data-image="' + flashcard.definitionImage + '"' : ''}>
+        <img src="${flashcard.definitionImage || ''}" alt="" style="display: ${flashcard.definitionImage ? 'block' : 'none'};">
         <button onclick="deleteFlashcard(this)">Delete</button>
       `;
       flashcardsContainer.appendChild(flashcardElement);
@@ -217,14 +225,17 @@ function setViewMode(mode) {
   const previewModeElements = document.querySelectorAll('.preview-mode');
   const practiceModeElements = document.querySelectorAll('.practice-mode');
   if (mode === 'edit') {
+    startAutoSave()
     editModeElements.forEach(element => element.style.display = 'block');
     previewModeElements.forEach(element => element.style.display = 'none');
     practiceModeElements.forEach(element => element.style.display = 'none');
   } else if (mode === 'preview') {
+    stopAutoSave()
     editModeElements.forEach(element => element.style.display = 'none');
     previewModeElements.forEach(element => element.style.display = 'block');
     practiceModeElements.forEach(element => element.style.display = 'none');
   } else if (mode === 'practice') {
+    stopAutoSave()
     editModeElements.forEach(element => element.style.display = 'none');
     previewModeElements.forEach(element => element.style.display = 'none');
     practiceModeElements.forEach(element => element.style.display = 'block');
@@ -407,16 +418,103 @@ function showNotification(message) {
   }, 3000);
 }
 
-function startAutoSave() {
-  autoSaveTimer = setInterval(() => {
-    saveSet();
-    showNotification('Autosave: Set saved successfully!');
-    updateFlashcardPreview();
-  }, 2000);
+function autoSaveSet() {
+
+  if (currentSet) {
+    currentSet.title = document.getElementById('set-title').value;
+    currentSet.description = document.getElementById('set-description').value;
+    currentSet.tags = document.getElementById('set-tags').value.split(',').map((tag) => tag.trim());
+    const flashcards = document.querySelectorAll('.flashcard');
+    const flashcardPromises = Array.from(flashcards).map((flashcardElement) => {
+      const term = flashcardElement.querySelector('input[type="text"]').value;
+      const definition = flashcardElement.querySelector('textarea').value;
+      const termImageInput = flashcardElement.querySelectorAll('input[type="file"]')[0];
+      const definitionImageInput = flashcardElement.querySelectorAll('input[type="file"]')[1];
+      const termImage = termImageInput.files[0];
+      const definitionImage = definitionImageInput.files[0];
+      const flashcard = {
+        id: flashcardElement.dataset.id,
+        term,
+        definition,
+        termImage: termImageInput.dataset.image || null,
+        definitionImage: definitionImageInput.dataset.image || null,
+      };
+      return new Promise((resolve) => {
+        if (termImage) {
+          const termReader = new FileReader();
+          termReader.onload = function (e) {
+            flashcard.termImage = e.target.result;
+            resolve(flashcard);
+          };
+          termReader.readAsDataURL(termImage);
+        } else if (definitionImage) {
+          const definitionReader = new FileReader();
+          definitionReader.onload = function (e) {
+            flashcard.definitionImage = e.target.result;
+            resolve(flashcard);
+          };
+          definitionReader.readAsDataURL(definitionImage);
+        } else {
+          resolve(flashcard);
+        }
+      });
+    });
+    Promise.all(flashcardPromises)
+      .then((flashcards) => {
+        currentSet.flashcards = flashcards;
+        saveData();
+        showNotification('Autosave: Set saved successfully!');
+        updateFlashcardPreview();
+      })
+      .catch((error) => {
+        console.error('Error autosaving flashcards:', error);
+      });
+  }
 }
 
+function startAutoSave() {
+  const titleInput = document.getElementById('set-title');
+  const descriptionInput = document.getElementById('set-description');
+  const tagsInput = document.getElementById('set-tags');
+
+  titleInput.addEventListener('input', autoSaveSet);
+  descriptionInput.addEventListener('input', autoSaveSet);
+  tagsInput.addEventListener('input', autoSaveSet);
+
+  flashcardsContainer.addEventListener('input', function (event) {
+    if (event.target.matches('.flashcard input, .flashcard textarea')) {
+      autoSaveSet();
+    }
+  });
+
+  flashcardsContainer.addEventListener('click', function (event) {
+    if (event.target.matches('.flashcard button')) {
+      autoSaveSet();
+    }
+  });
+}
+
+
 function stopAutoSave() {
-  clearInterval(autoSaveTimer);
+  const titleInput = document.getElementById('set-title');
+  const descriptionInput = document.getElementById('set-description');
+  const tagsInput = document.getElementById('set-tags');
+
+  titleInput.removeEventListener('input', autoSaveSet);
+  descriptionInput.removeEventListener('input', autoSaveSet);
+  tagsInput.removeEventListener('input', autoSaveSet);
+
+  flashcardsContainer.removeEventListener('input', function (event) {
+    if (event.target.matches('.flashcard input, .flashcard textarea')) {
+      autoSaveSet();
+    }
+  });
+
+  flashcardsContainer.removeEventListener('click', function (event) {
+    if (event.target.matches('.flashcard button')) {
+      autoSaveSet();
+    }
+  });
 }
 
 function loadSetFromURL() {
@@ -450,8 +548,31 @@ function populateSetForm() {
       flashcardElement.classList.add('flashcard');
       flashcardElement.dataset.id = flashcard.id;
       flashcardElement.innerHTML = `
-        <input type="text" value="${flashcard.term}">
-        <textarea>${flashcard.definition}</textarea>
+        <input type="text" value="${flashcard.term || ''}">
+        <textarea>${flashcard.definition || ''}</textarea>
+        <input type="file" accept="image/*" ${flashcard.termImage ? 'data-image="' + flashcard.termImage + '"' : ''}>
+        <img src="${flashcard.termImage || ''}" alt="" style="display: ${flashcard.termImage ? 'block' : 'none'};">
+        <input type="file" accept="image/*" ${flashcard.definitionImage ? 'data-image="' + flashcard.definitionImage + '"' : ''}>
+        <img src="${flashcard.definitionImage || ''}" alt="" style="display: ${flashcard.definitionImage ? 'block' : 'none'};">
+        <button onclick="deleteFlashcard(this)">Delete</button>
+      `;
+      flashcardsContainer.appendChild(flashcardElement);
+    });
+    startAutoSave();
+  }
+}
+function populateFlashcardForm() {
+  const flashcardsContainer = document.getElementById('flashcards-container');
+  flashcardsContainer.innerHTML = '';
+
+  if (currentSet && currentSet.flashcards) {
+    currentSet.flashcards.forEach((flashcard) => {
+      const flashcardElement = document.createElement('div');
+      flashcardElement.classList.add('flashcard');
+      flashcardElement.dataset.id = flashcard.id;
+      flashcardElement.innerHTML = `
+        <input type="text" value="${flashcard.term || ''}">
+        <textarea>${flashcard.definition || ''}</textarea>
         <input type="file" accept="image/*">
         <img src="${flashcard.termImage || ''}" alt="" style="display: ${flashcard.termImage ? 'block' : 'none'};">
         <input type="file" accept="image/*">
