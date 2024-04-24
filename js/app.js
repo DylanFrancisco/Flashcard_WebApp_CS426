@@ -196,8 +196,6 @@ function renderPreviewFlashcards() {
   }
 }
 
-
-
 function renderEditFlashcards() {
   const flashcardsContainer = document.getElementById('flashcards-container');
   flashcardsContainer.innerHTML = '';
@@ -225,22 +223,23 @@ function setViewMode(mode) {
   const previewModeElements = document.querySelectorAll('.preview-mode');
   const practiceModeElements = document.querySelectorAll('.practice-mode');
   if (mode === 'edit') {
-    startAutoSave()
+    startAutoSave();
     editModeElements.forEach(element => element.style.display = 'block');
     previewModeElements.forEach(element => element.style.display = 'none');
     practiceModeElements.forEach(element => element.style.display = 'none');
   } else if (mode === 'preview') {
-    stopAutoSave()
+    stopAutoSave();
     editModeElements.forEach(element => element.style.display = 'none');
     previewModeElements.forEach(element => element.style.display = 'block');
     practiceModeElements.forEach(element => element.style.display = 'none');
   } else if (mode === 'practice') {
-    stopAutoSave()
+    stopAutoSave();
     editModeElements.forEach(element => element.style.display = 'none');
     previewModeElements.forEach(element => element.style.display = 'none');
     practiceModeElements.forEach(element => element.style.display = 'block');
   }
 }
+
 function renderFolders() {
   const folderList = document.getElementById('folderList');
   folderList.innerHTML = '';
@@ -419,7 +418,6 @@ function showNotification(message) {
 }
 
 function autoSaveSet() {
-
   if (currentSet) {
     currentSet.title = document.getElementById('set-title').value;
     currentSet.description = document.getElementById('set-description').value;
@@ -494,7 +492,6 @@ function startAutoSave() {
   });
 }
 
-
 function stopAutoSave() {
   const titleInput = document.getElementById('set-title');
   const descriptionInput = document.getElementById('set-description');
@@ -535,7 +532,6 @@ function loadSetFromURL() {
   }
 }
 
-//need to add in fixed title, description, tag texts. etc.
 function populateSetForm() {
   if (currentSet) {
     document.getElementById('set-title').value = currentSet.title;
@@ -561,6 +557,7 @@ function populateSetForm() {
     startAutoSave();
   }
 }
+
 function populateFlashcardForm() {
   const flashcardsContainer = document.getElementById('flashcards-container');
   flashcardsContainer.innerHTML = '';
@@ -589,29 +586,185 @@ function getViewMode() {
   return urlParams.get('mode');
 }
 
-document.addEventListener('DOMContentLoaded', function() {
-  const addFlashcardButton = document.getElementById('add-flashcard');
-  const flashcardsContainer = document.getElementById('flashcards-container');
-  addFlashcardButton.addEventListener('click', createFlashcard);
+function openPDFModal() {
+  const modal = document.getElementById('pdf-modal');
+  modal.style.display = 'block';
+}
 
-  const saveSetButton = document.getElementById('save-set');
-  saveSetButton.addEventListener('click', saveSet);
+function closePDFModal() {
+  const modal = document.getElementById('pdf-modal');
+  modal.style.display = 'none';
+}
 
-  const searchInput = document.getElementById('search-terms');
-  searchInput.addEventListener('input', searchFlashcards);
+async function generateFlashcardsFromPDF() {
+  const pdfFile = document.getElementById('pdf-upload').files[0];
+  const apiKey = document.getElementById('openai-api-key').value;
+  const customInstructions = document.getElementById('custom-instructions').value;
 
-  const editSetButton = document.getElementById('edit-set');
-  editSetButton.addEventListener('click', enterEditMode);
-
-  const practiceSetButton = document.getElementById('practice-set');
-  practiceSetButton.addEventListener('click', enterPracticeMode);
-
-  loadData();
-  loadSetFromURL();
-  setViewMode();
-
-  if (getViewMode() === 'edit') {
-    populateSetForm();
-    startAutoSave();
+  if (!pdfFile || !apiKey) {
+    alert('Please select a PDF file and provide an OpenAI API key.');
+    return;
   }
-});
+
+  const pdfText = await extractTextFromPDF(pdfFile);
+  const flashcards = await generateFlashcardsFromText(pdfText, apiKey, customInstructions);
+
+  flashcards.forEach((flashcard) => {
+    createFlashcard(flashcard.term, flashcard.definition);
+  });
+
+  closePDFModal();
+}
+
+async function extractTextFromPDF(pdfFile) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = async function (e) {
+      const typedarray = new Uint8Array(e.target.result);
+      const pdf = await pdfjsLib.getDocument(typedarray).promise;
+      let extractedText = '';
+
+      for (let i = 1; i <= pdf.numPages; i++) {
+        const page = await pdf.getPage(i);
+        const textContent = await page.getTextContent();
+        const pageText = textContent.items.map(item => item.str).join(' ');
+        extractedText += pageText + '\n';
+      }
+
+      resolve(extractedText);
+    };
+    reader.onerror = function (e) {
+      reject(e);
+    };
+    reader.readAsArrayBuffer(pdfFile);
+  });
+}
+
+async function generateFlashcardsFromText(text, apiKey, customInstructions) {
+  const prompt = `Generate flashcards from the following text. Please respond strictly and only with flashcard term-definition pairs in the format "Term :: Definition", with different Term :: Definition pairs separated by a new line. Make sure to provide both the term and the definition for each flashcard.\n\n${customInstructions}\n\nText: ${text}\n\nFlashcards:\n`;
+
+  const response = await fetch('https://api.openai.com/v1/chat/completions', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${apiKey}`,
+    },
+    body: JSON.stringify({
+      model: 'gpt-3.5-turbo-0125',
+      messages: [
+        { role: 'user', content: prompt }
+      ]
+    }),
+  });
+
+  const data = await response.json();
+  console.log(data);
+
+  const generatedText = data.choices[0].message.content.trim();
+  console.log('Generated Text:', generatedText);
+
+  const flashcards = parseFlashcardsFromText(generatedText);
+
+  return flashcards;
+}
+
+function parseFlashcardsFromText(text) {
+  console.log("Input text: ", text);
+
+  const lines = text.split('\n');
+  const flashcards = [];
+
+  for (const line of lines) {
+
+    console.log("Processing line: ", line);
+
+    const parts = line.split('::').map(part => part.trim());
+
+    if (parts.length === 2) {
+      let [term, definition] = parts;
+
+      console.log("Term: ", term);
+      console.log("Definition: ", definition);
+
+
+      if (!term && definition) {
+        const firstColonIndex = definition.indexOf(':');
+        if (firstColonIndex !== -1) {
+          term = definition.slice(0, firstColonIndex).trim();
+          definition = definition.slice(firstColonIndex + 1).trim();
+        }
+      }
+
+      if (term && definition) {
+        flashcards.push({ term, definition });
+      }
+    }
+  }
+
+  console.log("Generated flashcards: ", flashcards); // Debug Line
+
+  return flashcards;
+}
+
+function createFlashcard(term, definition) {
+  const flashcardElement = document.createElement('div');
+  flashcardElement.classList.add('flashcard');
+  flashcardElement.dataset.id = Date.now().toString();
+  flashcardElement.innerHTML = `
+    <input type="text" value="${escapeHtml(term)}">
+    <textarea>${escapeHtml(definition)}</textarea>
+    <input type="file" accept="image/*">
+    <img src="" alt="" style="display: none;">
+    <input type="file" accept="image/*">
+    <img src="" alt="" style="display: none;">
+    <button onclick="deleteFlashcard(this)">Delete</button>
+  `;
+  flashcardsContainer.appendChild(flashcardElement);
+  autoSaveSet()
+  updateFlashcardPreview();
+}
+
+function escapeHtml(text) {
+  const map = {
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    '"': '&quot;',
+    "'": '&#039;'
+  };
+  return text.replace(/[&<>"']/g, function(m) { return map[m]; });
+}
+
+const addFlashcardButton = document.getElementById('add-flashcard');
+const flashcardsContainer = document.getElementById('flashcards-container');
+addFlashcardButton.addEventListener('click', createFlashcard);
+
+const saveSetButton = document.getElementById('save-set');
+saveSetButton.addEventListener('click', saveSet);
+
+const searchInput = document.getElementById('search-terms');
+searchInput.addEventListener('input', searchFlashcards);
+
+const editSetButton = document.getElementById('edit-set');
+editSetButton.addEventListener('click', enterEditMode);
+
+const practiceSetButton = document.getElementById('practice-set');
+practiceSetButton.addEventListener('click', enterPracticeMode);
+
+const openPDFModalButton = document.getElementById('open-pdf-modal');
+openPDFModalButton.addEventListener('click', openPDFModal);
+
+const closePDFModalButton = document.querySelector('.close');
+closePDFModalButton.addEventListener('click', closePDFModal);
+
+const generateFlashcardsButton = document.getElementById('generate-flashcards');
+generateFlashcardsButton.addEventListener('click', generateFlashcardsFromPDF);
+
+loadData();
+loadSetFromURL();
+setViewMode();
+
+if (getViewMode() === 'edit') {
+  populateSetForm();
+  startAutoSave();
+}
