@@ -34,18 +34,18 @@
       <h2>Folders</h2>
       <ul id="folderList"></ul>
       <input type="text" id="newFolderName" placeholder="New Folder Name">
-      <button onclick="createFolder()">Create Folder</button>
+      <button id="createFolderButton">Create Folder</button>
     </div>
     <div id="sets">
       <h2>Sets</h2>
       <ul id="setList"></ul>
       <input type="text" id="newSetName" placeholder="New Set Name">
-      <button onclick="createSet()">Create Set</button>
+      <button id="createSetButton">Create Set</button>
     </div>
   </div>
   <div id="main">
     <div id="flashcardView">
-      <div class="card" onclick="flipCard(this)">
+      <div class="card" id="flashcard">
         <div class="card-inner">
           <div class="card-front">
             <p id="questionText"></p>
@@ -58,8 +58,8 @@
         </div>
       </div>
       <div id="navigation">
-        <button onclick="previousFlashcard()">Previous</button>
-        <button onclick="nextFlashcard()">Next</button>
+        <button id="previousButton">Previous</button>
+        <button id="nextButton">Next</button>
       </div>
     </div>
     <div id="setDetails">
@@ -111,9 +111,9 @@
 <footer>
   <p>&copy; 2024 Cards - CS426.</p>
 </footer>
-
-<script src="/app.js"></script>
 <script src="/js/app.js"></script>
+<script src="app.js"></script>
+
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.9.359/pdf.min.js"></script>
 <script>
   pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.9.359/pdf.worker.min.js';
