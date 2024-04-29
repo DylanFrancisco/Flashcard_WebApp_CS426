@@ -760,6 +760,48 @@ closePDFModalButton.addEventListener('click', closePDFModal);
 const generateFlashcardsButton = document.getElementById('generate-flashcards');
 generateFlashcardsButton.addEventListener('click', generateFlashcardsFromPDF);
 
+//FML
+document.addEventListener('DOMContentLoaded', function() {
+  const createFolderButton = document.getElementById('createFolderButton');
+  createFolderButton.addEventListener('click', createFolder);
+
+  const createSetButton = document.getElementById('createSetButton');
+  createSetButton.addEventListener('click', createSet);
+
+  const previousButton = document.getElementById('previousButton');
+  previousButton.addEventListener('click', previousFlashcard);
+
+  const nextButton = document.getElementById('nextButton');
+  nextButton.addEventListener('click', nextFlashcard);
+
+  const flashcard = document.getElementById('flashcard');
+  flashcard.addEventListener('click', function() {
+    flipCard(this);
+  });
+
+  const saveSetButton = document.getElementById('save-set');
+  saveSetButton.addEventListener('click', saveSet);
+
+  const searchInput = document.getElementById('search-terms');
+  searchInput.addEventListener('input', searchFlashcards);
+
+  const editSetButton = document.getElementById('edit-set');
+  editSetButton.addEventListener('click', enterEditMode);
+
+  const practiceSetButton = document.getElementById('practice-set');
+  practiceSetButton.addEventListener('click', enterPracticeMode);
+
+  const openPDFModalButton = document.getElementById('open-pdf-modal');
+  openPDFModalButton.addEventListener('click', openPDFModal);
+
+  const closePDFModalButton = document.querySelector('.close');
+  closePDFModalButton.addEventListener('click', closePDFModal);
+
+  const generateFlashcardsButton = document.getElementById('generate-flashcards');
+  generateFlashcardsButton.addEventListener('click', generateFlashcardsFromPDF);
+
+
+});
 loadData();
 loadSetFromURL();
 setViewMode();
