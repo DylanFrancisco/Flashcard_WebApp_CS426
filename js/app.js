@@ -53,25 +53,9 @@ function deleteSet(setId) {
   }
 }
 
-function createFlashcard() {
-  const flashcardElement = document.createElement('div');
-  flashcardElement.classList.add('flashcard');
-  flashcardElement.dataset.id = Date.now().toString();
-  flashcardElement.innerHTML = `
-    <input type="text" placeholder="Enter term">
-    <textarea placeholder="Enter definition"></textarea>
-    <input type="file" accept="image/*">
-    <img src="" alt="" style="display: none;">
-    <input type="file" accept="image/*">
-    <img src="" alt="" style="display: none;">
-    <button onclick="deleteFlashcard(this)">Delete</button>
-  `;
-  flashcardsContainer.appendChild(flashcardElement);
-  updateFlashcardPreview();
-}
 
-function deleteFlashcard(element) {
-  const flashcardElement = element.parentNode;
+
+function deleteFlashcard(flashcardElement) {
   flashcardElement.parentNode.removeChild(flashcardElement);
   startAutoSave();
   updateFlashcardPreview();
@@ -211,9 +195,14 @@ function renderEditFlashcards() {
         <img src="${flashcard.termImage || ''}" alt="" style="display: ${flashcard.termImage ? 'block' : 'none'};">
         <input type="file" accept="image/*" ${flashcard.definitionImage ? 'data-image="' + flashcard.definitionImage + '"' : ''}>
         <img src="${flashcard.definitionImage || ''}" alt="" style="display: ${flashcard.definitionImage ? 'block' : 'none'};">
-        <button onclick="deleteFlashcard(this)">Delete</button>
+        <button id="deleteFlashcardButton">Delete</button>
       `;
       flashcardsContainer.appendChild(flashcardElement);
+
+      const deleteButton = flashcardElement.querySelector('#deleteFlashcardButton');
+      deleteButton.addEventListener('click', function() {
+        deleteFlashcard(flashcardElement);
+      });
     });
   }
 }
@@ -539,6 +528,10 @@ function populateSetForm() {
     document.getElementById('set-tags').value = currentSet.tags.join(', ');
     const flashcardsContainer = document.getElementById('flashcards-container');
     flashcardsContainer.innerHTML = '';
+    const deleteButton = flashcardElement.querySelector('button');
+    deleteButton.addEventListener('click', function() {
+      deleteFlashcard(flashcardElement);
+    });
     currentSet.flashcards.forEach((flashcard) => {
       const flashcardElement = document.createElement('div');
       flashcardElement.classList.add('flashcard');
@@ -550,7 +543,7 @@ function populateSetForm() {
         <img src="${flashcard.termImage || ''}" alt="" style="display: ${flashcard.termImage ? 'block' : 'none'};">
         <input type="file" accept="image/*" ${flashcard.definitionImage ? 'data-image="' + flashcard.definitionImage + '"' : ''}>
         <img src="${flashcard.definitionImage || ''}" alt="" style="display: ${flashcard.definitionImage ? 'block' : 'none'};">
-        <button onclick="deleteFlashcard(this)">Delete</button>
+
       `;
       flashcardsContainer.appendChild(flashcardElement);
     });
@@ -706,33 +699,41 @@ function parseFlashcardsFromText(text) {
   return flashcards;
 }
 
-function createFlashcard(term, definition) {
+function createFlashcard(term = '', definition = '') {
   const flashcardElement = document.createElement('div');
   flashcardElement.classList.add('flashcard');
   flashcardElement.dataset.id = Date.now().toString();
   flashcardElement.innerHTML = `
-    <input type="text" value="${escapeHtml(term)}">
-    <textarea>${escapeHtml(definition)}</textarea>
+    <input type="text" placeholder="Enter term" value="${escapeHtml(term)}">
+    <textarea placeholder="Enter definition">${escapeHtml(definition)}</textarea>
     <input type="file" accept="image/*">
     <img src="" alt="" style="display: none;">
     <input type="file" accept="image/*">
     <img src="" alt="" style="display: none;">
-    <button onclick="deleteFlashcard(this)">Delete</button>
+    <button id="deleteFlashcardButton">Delete</button>
   `;
   flashcardsContainer.appendChild(flashcardElement);
-  autoSaveSet()
+
+  const deleteButton = flashcardElement.querySelector('#deleteFlashcardButton');
+  deleteButton.addEventListener('click', function() {
+    deleteFlashcard(flashcardElement);
+  });
+
   updateFlashcardPreview();
 }
 
 function escapeHtml(text) {
-  const map = {
-    '&': '&amp;',
-    '<': '&lt;',
-    '>': '&gt;',
-    '"': '&quot;',
-    "'": '&#039;'
-  };
-  return text.replace(/[&<>"']/g, function(m) { return map[m]; });
+  if (typeof text === 'string') {
+    const map = {
+      '&': '&amp;',
+      '<': '&lt;',
+      '>': '&gt;',
+      '"': '&quot;',
+      "'": '&#039;'
+    };
+    return text.replace(/[&<>"']/g, function(m) { return map[m]; });
+  }
+  return '';
 }
 
 const addFlashcardButton = document.getElementById('add-flashcard');
