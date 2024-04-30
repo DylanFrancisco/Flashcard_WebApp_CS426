@@ -802,6 +802,7 @@ document.addEventListener('DOMContentLoaded', function() {
   generateFlashcardsButton.addEventListener('click', generateFlashcardsFromPDF);
 
 
+
 });
 loadData();
 loadSetFromURL();
