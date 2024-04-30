@@ -368,7 +368,7 @@ function nextFlashcard() {
 function flipCard(card) {
   console.log('Flipping card:', card);
   const cardInner = card.querySelector('.card-inner');
-  cardInner.style.transform = cardInner.style.transform === 'rotateY(180deg)' ? 'rotateY(0deg)' : 'rotateY(180deg)';
+  cardInner.style.transform = cardInner.style.transform === 'rotateY(180deg)' ? 'rotateY(0deg) !important' : 'rotateY(180deg) !important';
 }
 
 function clearFlashcardPreview() {
