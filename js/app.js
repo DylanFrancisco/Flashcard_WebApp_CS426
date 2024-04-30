@@ -26,7 +26,7 @@ function deleteFolder(folderId) {
 }
 
 
-//change 
+//change
 
 
 function createSet() {
@@ -325,8 +325,10 @@ function updateFlashcardPreview() {
 }
 
 function showFlashcard() {
+  console.log('Showing flashcard');
   if (currentSet && currentFlashcard !== null) {
     const flashcard = currentSet.flashcards[currentFlashcard];
+    console.log('Current flashcard:', flashcard);
     document.getElementById('questionText').textContent = flashcard.term;
     document.getElementById('answerText').textContent = flashcard.definition;
     const questionImage = document.getElementById('questionImage');
@@ -363,6 +365,7 @@ function nextFlashcard() {
 }
 
 function flipCard(card) {
+  console.log('Flipping card:', card);
   card.classList.toggle('is-flipped');
 }
 
@@ -395,6 +398,7 @@ function loadData() {
   const data = localStorage.getItem('flashcardData');
   if (data) {
     folders = JSON.parse(data);
+    console.log('Loaded data:', folders);
     renderFolders();
     updateFlashcardPreview();
   }
@@ -744,26 +748,17 @@ const addFlashcardButton = document.getElementById('add-flashcard');
 const flashcardsContainer = document.getElementById('flashcards-container');
 addFlashcardButton.addEventListener('click', createFlashcard);
 
-const saveSetButton = document.getElementById('save-set');
-saveSetButton.addEventListener('click', saveSet);
 
-const searchInput = document.getElementById('search-terms');
-searchInput.addEventListener('input', searchFlashcards);
 
-const editSetButton = document.getElementById('edit-set');
-editSetButton.addEventListener('click', enterEditMode);
 
-const practiceSetButton = document.getElementById('practice-set');
-practiceSetButton.addEventListener('click', enterPracticeMode);
 
-const openPDFModalButton = document.getElementById('open-pdf-modal');
-openPDFModalButton.addEventListener('click', openPDFModal);
 
-const closePDFModalButton = document.querySelector('.close');
-closePDFModalButton.addEventListener('click', closePDFModal);
 
-const generateFlashcardsButton = document.getElementById('generate-flashcards');
-generateFlashcardsButton.addEventListener('click', generateFlashcardsFromPDF);
+
+
+
+
+
 
 //FML
 document.addEventListener('DOMContentLoaded', function() {
@@ -781,6 +776,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
   const flashcard = document.getElementById('flashcard');
   flashcard.addEventListener('click', function() {
+    console.log('Flashcard clicked');
     flipCard(this);
   });
 
