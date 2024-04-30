@@ -225,6 +225,7 @@ function setViewMode(mode) {
     editModeElements.forEach(element => element.style.display = 'none');
     previewModeElements.forEach(element => element.style.display = 'block');
     practiceModeElements.forEach(element => element.style.display = 'none');
+    renderFlashcards()
   } else if (mode === 'practice') {
     stopAutoSave();
     editModeElements.forEach(element => element.style.display = 'none');
@@ -366,7 +367,8 @@ function nextFlashcard() {
 
 function flipCard(card) {
   console.log('Flipping card:', card);
-  card.classList.toggle('is-flipped');
+  const cardInner = card.querySelector('.card-inner');
+  cardInner.style.transform = cardInner.style.transform === 'rotateY(180deg)' ? 'rotateY(0deg)' : 'rotateY(180deg)';
 }
 
 function clearFlashcardPreview() {
