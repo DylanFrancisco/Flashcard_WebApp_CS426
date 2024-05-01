@@ -1,4 +1,4 @@
-# Cards - Flashcard Creation and Management System w/ AI Card Generation
+# Cards - Flashcard Creation and Management System w/ AI Card Generation & NLP Video Recommendation
 ## Overview
 This Flashcard Management System is a comprehensive solution for creating, managing, and practicing with flashcards. It is designed to help users organize information into folders and sets, and to facilitate learning through various modes like editing, previewing, and practicing with flashcards.
 
@@ -7,6 +7,10 @@ This Flashcard Management System is a comprehensive solution for creating, manag
   Users can add, edit, and delete flashcards within sets. Flashcards can include terms, definitions, and images for both the term and definition (side eye to Quizlet).
 * AI Auto-Flashcard Generation:
   Users can upload PDFs to generate flashcards, which will populate new cards with pre-filled based on the content and optional prompt.
+* NLP Video Recommenadtion:
+  Requires set up of: https://github.com/HNKunwar/NLP-Educational-Video-Recommendations
+  Sends flashcard data to server which processes and returns recommended videos based on flashcards. Currently only supports 
+  Math, Biology, Chemistry, Physics, Economics, and (some) Computer Science.
 * AutoSave Feature:
   Changes to flashcards and sets are automatically saved to prevent data loss.
 * Search Functionality:
