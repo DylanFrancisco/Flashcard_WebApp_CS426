@@ -893,6 +893,7 @@ async function extractTextFromPDF(pdfFile) {
       reject(e);
     };
     reader.readAsArrayBuffer(pdfFile);
+    updateFlashcardPreview()
   });
 }
 
@@ -958,8 +959,9 @@ function parseFlashcardsFromText(text) {
   }
 
   console.log("Generated flashcards: ", flashcards); // Debug Line
-
+  updateFlashcardPreview()
   return flashcards;
+
 }
 
 function createFlashcard(term = '', definition = '') {
@@ -983,6 +985,7 @@ function createFlashcard(term = '', definition = '') {
   });
 
   updateFlashcardPreview();
+  autoSaveSet()
 }
 
 //this is cause model response varies and we might have some symbols that
