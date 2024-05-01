@@ -1,3 +1,5 @@
+
+
 let folders = [];
 let currentFolder = null;
 let currentSet = null;
@@ -8,10 +10,25 @@ function createFolder() {
   const folderName = document.getElementById('newFolderName').value;
   if (folderName) {
     const folder = {
-      id: Date.now().toString(),
+      id: Math.floor(10000 + Math.random() * 90000).toString(),
       name: folderName,
       sets: [],
-    };
+    }; 
+    fetch(`http://localhost:3000/api/create-folder?folderId=${folder.id}&folderName=${folder.name}`)
+      .then(response => {
+        console.log(response)
+        if (!response.ok) {
+          throw new Error('Failed to create folder');
+        }
+        return response.json();
+      })
+      .then(data => {
+        console.log('Success:', data);
+      })
+      .catch(error => {
+        console.error('Error:', error);
+      });
+
     folders.push(folder);
     saveData();
     renderFolders();
@@ -28,6 +45,21 @@ function deleteFolder(folderId) {
     });
     // Remove the folder from the folders array
     folders = folders.filter(folder => folder.id !== folderId);
+  fetch(`http://localhost:3000/api/delete-folder?folderId=${folderId}`)
+      .then(response => {
+        console.log(response)
+        if (!response.ok) {
+          throw new Error('Failed to delete folder');
+        }
+        return response.json();
+      })
+      .then(data => {
+        console.log('Success:', data);
+      })
+      .catch(error => {
+        console.error('Error:', error);
+      });
+
     saveData();
     renderFolders();
     updateFlashcardPreview();
@@ -39,13 +71,28 @@ function createSet() {
   const setName = document.getElementById('newSetName').value;
   if (setName && currentFolder) {
     const set = {
-      id: Date.now().toString(),
+      id: Math.floor(10000 + Math.random() * 90000).toString(),
       name: setName,
       title: setName,
       description: '',
       tags: [],
       flashcards: [],
     };
+    console.log(currentFolder);
+    fetch(`http://localhost:3000/api/create-set?setId=${set.id}&setName=${set.name}&setTitle=${set.title}&setDescription=${set.description}&folderId=${currentFolder.id}`)
+      .then(response => {
+        console.log(response)
+        if (!response.ok) {
+          throw new Error('Failed to create set');
+        }
+        return response.json();
+      })
+      .then(data => {
+        console.log('Success:', data);
+      })
+      .catch(error => {
+        console.error('Error:', error);
+      });
     currentFolder.sets.push(set);
     currentSet = set;
     saveData();
@@ -61,6 +108,22 @@ function deleteSet(setId) {
     if (setToDelete) {
       // Remove the set from the current folder's sets array
       currentFolder.sets = currentFolder.sets.filter(set => set.id !== setId);
+    console.log(set.id);
+    fetch(`http://localhost:3000/api/delete-set?setId=${setId}`)
+      .then(response => {
+        console.log(response)
+        if (!response.ok) {
+          throw new Error('Failed to delete set');
+        }
+        return response.json();
+      })
+      .then(data => {
+        console.log('Success:', data);
+      })
+      .catch(error => {
+        console.error('Error:', error);
+      });
+
       // Remove the relevant video data associated with the set from local storage
       localStorage.removeItem(setId);
       saveData();
@@ -74,15 +137,98 @@ function deleteSet(setId) {
 
 function deleteFlashcard(flashcardElement) {
   flashcardElement.parentNode.removeChild(flashcardElement);
+  //TODO: delete flashcard
+  fetch(`http://localhost:3000/api/delete-flashcard?cardId=${flashcardElement.dataset.id}`)
+      .then(response => {
+        console.log(response)
+        if (!response.ok) {
+          throw new Error('Failed to delete folder');
+        }
+        return response.json();
+      })
+      .then(data => {
+        console.log('Success:', data);
+      })
+      .catch(error => {
+        console.error('Error:', error);
+      });
+
   startAutoSave();
   updateFlashcardPreview();
 }
 
 function saveSet() {
   if (currentSet) {
+    console.log(currentSet);
     currentSet.title = document.getElementById('set-title').value;
     currentSet.description = document.getElementById('set-description').value;
     currentSet.tags = document.getElementById('set-tags').value.split(',').map((tag) => tag.trim());
+
+    fetch(`http://localhost:3000/api/update-set?setId=${currentSet.id}&setTitle=${currentSet.title}&setDescription=${currentSet.description}`)
+      .then(response => {
+        console.log(response)
+        if (!response.ok) {
+          throw new Error('Failed to update set');
+        }
+        return response.json();
+      })
+      .then(data => {
+        console.log('Success:', data);
+      })
+      .catch(error => {
+        console.error('Error:', error);
+      });
+
+      for ( let flashcard of currentSet.flashcards) {
+        console.log(flashcard);
+        const id = flashcard.id;
+        const term = flashcard.term;
+        const definition = flashcard.definition;
+        fetch(`http://localhost:3000/api/update-flashcard?cardId=${id}&cardTitle=${term}&cardDef=${definition}`)
+        .then(response => {
+          console.log(response)
+          if (!response.ok) {
+            throw new Error('Failed to update flashcard');
+          }
+          return response.json();
+        })
+        .then(data => {
+          console.log('Success:', data);
+        })
+        .catch(error => {
+          console.error('Error:', error);
+        });
+      }  
+    currentFolder.sets.push(set);
+    currentSet = set;
+    saveData();
+    renderSets();
+    updateSetDetails();
+    document.getElementById('newSetName').value = '';
+  }
+}
+
+function deleteSet(setId) {
+  if (currentFolder) {
+    currentFolder.sets = currentFolder.sets.filter((set) => set.id !== setId);
+    fetch(`http://localhost:3000/api/delete-set?setId=${setId}`)
+      .then(response => {
+        console.log(response)
+        if (!response.ok) {
+          throw new Error('Failed to delete set');
+        }
+        return response.json();
+      })
+      .then(data => {
+        console.log('Success:', data);
+      })
+      .catch(error => {
+        console.error('Error:', error);
+      });
+
+    console.log(currentSet.flashcards)
+
+   
     const flashcards = document.querySelectorAll('.flashcard');
     const flashcardPromises = Array.from(flashcards).map((flashcardElement) => {
       const term = flashcardElement.querySelector('input[type="text"]').value;
@@ -98,6 +244,8 @@ function saveSet() {
         termImage: termImageInput.dataset.image || null,
         definitionImage: definitionImageInput.dataset.image || null,
       };
+      //TODO: save flashcards
+      console.log(flashcard);
       return new Promise((resolve) => {
         if (termImage) {
           const termReader = new FileReader();
@@ -134,7 +282,7 @@ function saveSet() {
 }
 
 function saveFlashcardToSet(flashcard) {
-  flashcard.id = Date.now().toString();
+  console.log(flashcard);
   currentSet.flashcards.push(flashcard);
   updateFlashcardPreview();
 }
@@ -964,10 +1112,10 @@ function parseFlashcardsFromText(text) {
 
 }
 
-function createFlashcard(term = '', definition = '') {
+function createFlashcard(term = 'term', definition = 'definition') {
   const flashcardElement = document.createElement('div');
   flashcardElement.classList.add('flashcard');
-  flashcardElement.dataset.id = Date.now().toString();
+  flashcardElement.dataset.id = Math.floor(10000 + Math.random() * 90000).toString();
   flashcardElement.innerHTML = `
     <input type="text" placeholder="Enter term" value="${escapeHtml(term)}">
     <textarea placeholder="Enter definition">${escapeHtml(definition)}</textarea>
@@ -978,6 +1126,21 @@ function createFlashcard(term = '', definition = '') {
     <button id="deleteFlashcardButton">Delete</button>
   `;
   flashcardsContainer.appendChild(flashcardElement);
+
+  fetch(`http://localhost:3000/api/create-flashcard?cardId=${flashcardElement.dataset.id}&cardTitle=term&cardDef=${definition}&setId=${currentSet.id}`)
+      .then(response => {
+        console.log(response)
+        if (!response.ok) {
+          throw new Error('Failed to create folder');
+        }
+        return response.json();
+      })
+      .then(data => {
+        console.log('Success:', data);
+      })
+      .catch(error => {
+        console.error('Error:', error);
+      });
 
   const deleteButton = flashcardElement.querySelector('#deleteFlashcardButton');
   deleteButton.addEventListener('click', function() {
