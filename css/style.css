@@ -4,9 +4,27 @@
   box-sizing: border-box;
 }
 
+html {
+  height: 100%;
+}
+
+
+#setDetails, #flashcards {
+  display: none;
+}
+
 body {
   font-family: Arial, sans-serif;
   line-height: 1.6;
+  min-height: 100%;
+  display: flex;
+  flex-direction: column;
+  padding-bottom: 60px;
+}
+
+#app {
+  flex: 1;
+  display: flex;
 }
 
 header {
@@ -42,6 +60,7 @@ nav ul li a {
 #main {
   flex: 1;
   padding: 1rem;
+  bottom: 0;
 }
 
 .flashcard {
@@ -62,8 +81,8 @@ nav ul li a {
 }
 
 .card {
-  width: 300px;
-  height: 200px;
+  width: 700px;
+  height: 400px;
   perspective: 1000px;
   margin: 0 auto;
   cursor: pointer;
@@ -78,24 +97,10 @@ nav ul li a {
   transform-style: preserve-3d;
 }
 
-/**
-working on local - not on deployment, moving to eventlistener
 
 .card.is-flipped .card-inner {
   transform: rotateY(180deg);
 }
-
-**/
-
-
-.card-front,
-.card-back {
-  position: absolute;
-  width: 100%;
-  height: 100%;
-  backface-visibility: hidden;
-}
-
 
 .card-front,
 .card-back {
@@ -117,6 +122,7 @@ working on local - not on deployment, moving to eventlistener
   transform: rotateY(180deg);
 }
 
+
 .card h2 {
   margin-bottom: 1rem;
 }
@@ -128,6 +134,7 @@ working on local - not on deployment, moving to eventlistener
 
 #navigation {
   margin-top: 1rem;
+  bottom: 0;
 }
 
 ul {
@@ -307,10 +314,15 @@ nav ul {
 }
 
 #folderList li.active {
+  background-color: #dddd;
+  color: black;
   font-weight: bold;
-  background-color: #e0e0e0;
 }
 
+#setList li.active {
+  background-color: #dddd;
+  color: white;
+}
 #folderList li button,
 #setList li button {
   margin-left: 10px;
@@ -349,11 +361,48 @@ nav ul {
 }
 
 .edit-mode.active,
-.practice-mode.active,
 .preview-mode.active {
   display: block;
 }
 
+.preview-mode {
+  background-color: #f4f4f4;
+  padding: 1rem;
+}
+
+.practice-mode {
+  background-color: #f4f4f4;
+  padding: 1rem;
+}
+
+
+
+
+
+/** makes sure footer is all the way at the bottom **/
+footer {
+
+  position: fixed;
+  width: 100%;
+
+  bottom: 0;
+  background: #000;
+}
+
+/** specifically for auto-generate ai section **/
+    /* ... dialogue box css ... */
+.dialog {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background-color: #fff;
+  padding: 20px;
+  border-radius: 5px;
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
+  z-index: 1000;
+  display: none;
+}
 
 .dialog.show {
   display: block;
@@ -372,3 +421,42 @@ nav ul {
 .dialog-content button {
   align-self: flex-end;
 }
+
+.modal {
+  display: none;
+  position: fixed;
+  z-index: 1;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  overflow: auto;
+  background-color: rgba(0, 0, 0, 0.4);
+}
+
+.modal-content {
+  background-color: #fefefe;
+  margin: 15% auto;
+  padding: 20px;
+  border: 1px solid #888;
+  width: 80%;
+}
+
+.close {
+  color: #aaa;
+  float: right;
+  font-size: 28px;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+.close:hover,
+.close:focus {
+  color: black;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+
+
+

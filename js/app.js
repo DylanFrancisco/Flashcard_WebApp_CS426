@@ -37,7 +37,14 @@ function createFolder() {
 }
 
 function deleteFolder(folderId) {
-  folders = folders.filter((folder) => folder.id !== folderId);
+  const folderToDelete = folders.find(folder => folder.id === folderId);
+  if (folderToDelete) {
+    // Delete all sets contained within the folder
+    folderToDelete.sets.forEach(set => {
+      deleteSet(set.id);
+    });
+    // Remove the folder from the folders array
+    folders = folders.filter(folder => folder.id !== folderId);
   fetch(`http://localhost:3000/api/delete-folder?folderId=${folderId}`)
       .then(response => {
         console.log(response)
@@ -53,12 +60,11 @@ function deleteFolder(folderId) {
         console.error('Error:', error);
       });
 
-  saveData();
-  renderFolders();
+    saveData();
+    renderFolders();
+    updateFlashcardPreview();
+  }
 }
-
-
-//change
 
 
 function createSet() {
@@ -67,7 +73,7 @@ function createSet() {
     const set = {
       id: Math.floor(10000 + Math.random() * 90000).toString(),
       name: setName,
-      title: '',
+      title: setName,
       description: '',
       tags: [],
       flashcards: [],
@@ -98,7 +104,10 @@ function createSet() {
 
 function deleteSet(setId) {
   if (currentFolder) {
-    currentFolder.sets = currentFolder.sets.filter((set) => set.id !== setId);
+    const setToDelete = currentFolder.sets.find(set => set.id === setId);
+    if (setToDelete) {
+      // Remove the set from the current folder's sets array
+      currentFolder.sets = currentFolder.sets.filter(set => set.id !== setId);
     console.log(set.id);
     fetch(`http://localhost:3000/api/delete-set?setId=${setId}`)
       .then(response => {
@@ -115,8 +124,12 @@ function deleteSet(setId) {
         console.error('Error:', error);
       });
 
-    saveData();
-    renderSets();
+      // Remove the relevant video data associated with the set from local storage
+      localStorage.removeItem(setId);
+      saveData();
+      renderSets();
+      updateFlashcardPreview();
+    }
   }
 }
 
@@ -277,13 +290,106 @@ function saveFlashcardToSet(flashcard) {
 function enterPreviewMode(setId) {
   currentSet = findSetById(setId);
   if (currentSet) {
+
     document.getElementById('set-title-preview').textContent = 'Title: ' + currentSet.title;
     document.getElementById('set-description-preview').textContent = 'Description: ' + currentSet.description;
     document.getElementById('set-tags-preview').textContent = 'Tags: ' + currentSet.tags.join(', ');
+
+    const relevantVideos = getRelevantVideosFromLocalStorage(setId);
+    renderVideosGrid(relevantVideos);
+
     renderPreviewFlashcards();
     updateFlashcardPreview();
     setViewMode('preview');
   }
+}
+
+function getRelevantVideosFromLocalStorage(setId) {
+  const relevantVideosString = localStorage.getItem(setId);
+  if (relevantVideosString) {
+    try {
+      const videosData = JSON.parse(relevantVideosString);
+      return videosData.relevantVideos; // Assuming the stored structure
+    } catch (error) {
+      console.error("Error parsing relevant videos data:", error);
+    }
+  }
+  return []; // Return an empty array if no data
+}
+
+function renderVideosGrid(videos) {
+  const videoGrid = document.getElementById('videoGrid');
+  videoGrid.innerHTML = ''; // Clear previous contents
+
+  // Set the grid layout styles
+  videoGrid.style.display = 'grid';
+  videoGrid.style.gridTemplateColumns = 'repeat(3, 1fr)';
+  videoGrid.style.gap = '20px';
+  videoGrid.style.padding = '20px';
+
+  // Calculate the number of rows needed
+  const rows = Math.ceil(videos.length / 3);
+
+  // Create a 2D array to hold the video items
+  const videoItems = Array.from({ length: rows }, () => []);
+
+  // Distribute the videos into the 2D array
+  videos.forEach((video, index) => {
+    const rowIndex = Math.floor(index / 3);
+    videoItems[rowIndex].push(video);
+  });
+
+  // Render each row of video items
+  videoItems.forEach(row => {
+    const rowElement = document.createElement('div');
+    rowElement.style.display = 'flex';
+    rowElement.style.justifyContent = 'space-between';
+
+    row.forEach(video => {
+      const videoItem = document.createElement('div');
+      videoItem.classList.add('video-item');
+      videoItem.style.width = '30%';
+
+      // Extract video ID from the link
+      const videoId = video.Link.split('v=')[1].split('&')[0];
+
+      // Create iframe element
+      const iframe = document.createElement('iframe');
+      iframe.src = `https://www.youtube.com/embed/${videoId}`;
+      iframe.frameborder = '0';
+      iframe.allowfullscreen = true;
+      iframe.style.width = '100%';
+      iframe.style.aspectRatio = '16 / 9';
+
+      // Create video title element
+      const title = document.createElement('div');
+      title.classList.add('video-title');
+      title.textContent = video.Title;
+      title.style.marginTop = '10px';
+      title.style.textAlign = 'center';
+      title.style.fontWeight = 'bold';
+
+      videoItem.appendChild(iframe);
+      videoItem.appendChild(title);
+      rowElement.appendChild(videoItem);
+    });
+
+    videoGrid.appendChild(rowElement);
+  });
+
+  // Responsive layout adjustments
+  const handleResize = () => {
+    if (window.innerWidth <= 768) {
+      videoGrid.style.gridTemplateColumns = 'repeat(2, 1fr)';
+    } else if (window.innerWidth <= 480) {
+      videoGrid.style.gridTemplateColumns = '1fr';
+    } else {
+      videoGrid.style.gridTemplateColumns = 'repeat(3, 1fr)';
+    }
+  };
+
+  window.addEventListener('resize', handleResize);
+  handleResize(); // Initial call to set the layout based on the current window size
 }
 
 function enterEditMode() {
@@ -368,11 +474,15 @@ function setViewMode(mode) {
     editModeElements.forEach(element => element.style.display = 'block');
     previewModeElements.forEach(element => element.style.display = 'none');
     practiceModeElements.forEach(element => element.style.display = 'none');
+    setDetails.style.display = 'block';
+    flashcards.style.display = 'block';
   } else if (mode === 'preview') {
     stopAutoSave();
     editModeElements.forEach(element => element.style.display = 'none');
     previewModeElements.forEach(element => element.style.display = 'block');
     practiceModeElements.forEach(element => element.style.display = 'none');
+    setDetails.style.display = 'block';
+    flashcards.style.display = 'block';
     renderFlashcards()
   } else if (mode === 'practice') {
     stopAutoSave();
@@ -383,15 +493,17 @@ function setViewMode(mode) {
 }
 
 function renderFolders() {
-  const folderList = document.getElementById('folderList');
-  folderList.innerHTML = '';
+  const folderListElement = document.getElementById('folderList'); // Assuming you have a <ul> or <div> with this ID in your HTML
+  folderListElement.innerHTML = ''; // Clear existing folder list items
+
   folders.forEach((folder) => {
     const li = document.createElement('li');
     li.textContent = folder.name;
-    li.onclick = function () {
+    li.dataset.folderId = folder.id; // Add folder ID as data attribute
+    li.onclick = function() {
       currentFolder = folder;
-      renderSets();
-      setActiveFolder(folder.id);
+      renderSets(); // Assuming this function displays the sets belonging to the currentFolder
+      setActiveFolder(folder.id); // Highlight the active folder
     };
     const deleteButton = document.createElement('button');
     deleteButton.textContent = 'Delete';
@@ -401,17 +513,20 @@ function renderFolders() {
     };
     li.appendChild(deleteButton);
     folderList.appendChild(li);
+    folderListElement.appendChild(li);
   });
 }
 
+
 function setActiveFolder(folderId) {
-  const folderItems = document.querySelectorAll('#folderList li');
-  folderItems.forEach((item) => {
-    item.classList.remove('active');
-    if (item.textContent.includes(folderId)) {
-      item.classList.add('active');
-    }
+  document.querySelectorAll('#folderList li').forEach(li => {
+    li.classList.remove('active');
   });
+
+  const activeFolder = document.querySelector(`#folderList li[data-folder-id="${folderId}"]`);
+  if (activeFolder) {
+    activeFolder.classList.add('active');
+  }
 }
 
 function renderSets() {
@@ -421,13 +536,16 @@ function renderSets() {
     currentFolder.sets.forEach((set) => {
       const li = document.createElement('li');
       li.textContent = set.name;
+      li.setAttribute('data-set-id', set.id);
       li.onclick = function () {
+        currentSet = set;
         enterPreviewMode(set.id);
+        highlightActiveSet(set.id);
       };
       const deleteButton = document.createElement('button');
       deleteButton.textContent = 'Delete';
       deleteButton.onclick = function (event) {
-        event.stopPropagation();
+        event.stopPropagation(); // Prevent the li onclick from being triggered
         deleteSet(set.id);
       };
       li.appendChild(deleteButton);
@@ -435,6 +553,18 @@ function renderSets() {
     });
   }
 }
+
+function highlightActiveSet(setId) {
+  console.log("Highlighting set with ID: ", setId); // Debugging
+  document.querySelectorAll('#setList li').forEach(li => {
+    li.classList.remove('active');
+    console.log("Checking set li with data-set-id: ", li.getAttribute('data-set-id')); // Debugging
+    if(li.getAttribute('data-set-id') === String(setId)) {
+      li.classList.add('active');
+    }
+  });
+}
+
 
 function renderFlashcards() {
   const flashcardList = document.getElementById('flashcardList');
@@ -454,6 +584,33 @@ function renderFlashcards() {
       flashcardList.appendChild(li);
     });
   }
+}
+
+function renderYouTubeVideos() {
+  const videoGrid = document.querySelector('.video-container');
+  videoGrid.innerHTML = '';
+
+  const relevantVideos = getRelevantVideos(currentSet.id);
+
+  relevantVideos.forEach(video => {
+    const videoItem = document.createElement('div');
+    videoItem.classList.add('video-item');
+
+    const thumbnail = document.createElement('img');
+    thumbnail.src = video.thumbnail;
+    thumbnail.alt = video.title;
+    thumbnail.addEventListener('click', () => {
+      window.open(video.link, '_blank');
+    });
+
+    const title = document.createElement('div');
+    title.classList.add('video-title');
+    title.textContent = video.title;
+
+    videoItem.appendChild(thumbnail);
+    videoItem.appendChild(title);
+    videoGrid.appendChild(videoItem);
+  });
 }
 
 function updateSetDetails() {
@@ -516,7 +673,7 @@ function nextFlashcard() {
 function flipCard(card) {
   console.log('Flipping card:', card);
   const cardInner = card.querySelector('.card-inner');
-  cardInner.style.transform = cardInner.style.transform === 'rotateY(180deg)' ? 'rotateY(0deg) !important' : 'rotateY(180deg) !important';
+  cardInner.style.transform = cardInner.style.transform === 'rotateY(180deg)' ? 'rotateY(0deg)' : 'rotateY(180deg)';
 }
 
 function clearFlashcardPreview() {
@@ -564,6 +721,68 @@ function showNotification(message) {
   }, 3000);
 }
 
+function getFlashcardContent() {
+  const flashcards = currentSet.flashcards;
+  const flashcardContent = flashcards.map((flashcard) => {
+    return `${flashcard.term} ${flashcard.definition}`;
+  }).join(' ');
+  return flashcardContent;
+}
+
+function sendFlashcardContent(setId, content) {
+  //currently set to rely on local flask server since cloud deployed version
+  //forgot to account for CORS issues
+  //to deploy API, create docker image for and point to server & port etc.:
+  //https://github.com/HNKunwar/NLP-Educational-Video-Recommendations
+  const url = "http://127.0.0.1:5000/relevant-videos";
+  const headers = {
+    "Content-Type": "application/json"
+  };
+  const data = {
+    content: content
+  };
+
+  fetch(url, {
+    method: "POST",
+    headers: headers,
+    body: JSON.stringify(data)
+  })
+    .then(response => {
+      if (response.ok) {
+        return response.json();
+      } else {
+        throw new Error(`Error: ${response.status}`);
+      }
+    })
+    .then(relevantVideos => {
+      console.log("Relevant videos:", relevantVideos);
+
+      // Remove duplicate links and associated titles
+      const uniqueVideos = relevantVideos.filter((video, index, self) =>
+        index === self.findIndex((v) => v.Link === video.Link)
+      );
+
+      // Keep only the 9 most relevant videos
+      const topRelevantVideos = uniqueVideos.slice(0, 9);
+
+      // Store the relevant videos in local storage
+      const set = JSON.parse(localStorage.getItem(setId)) || {};
+      set.relevantVideos = topRelevantVideos;
+      localStorage.setItem(setId, JSON.stringify(set));
+    })
+    .catch(error => {
+      console.error("Error:", error);
+    });
+}
+
+
+
+function getRelevantVideos(setId) {
+  const set = JSON.parse(localStorage.getItem(setId)) || {};
+  return set.relevantVideos || [];
+}
+
+
 function autoSaveSet() {
   if (currentSet) {
     currentSet.title = document.getElementById('set-title').value;
@@ -610,12 +829,25 @@ function autoSaveSet() {
         saveData();
         showNotification('Autosave: Set saved successfully!');
         updateFlashcardPreview();
+
+        // Check if relevant videos already exist for the current set
+        const existingRelevantVideos = getRelevantVideos(currentSet.id);
+
+        // Get the flashcard content
+        const flashcardContent = getFlashcardContent();
+
+        // Send the flashcard content to the server if there are no existing relevant videos or if the number of flashcards has changed
+        if (existingRelevantVideos.length === 0 || flashcards.length !== existingRelevantVideos.length) {
+          sendFlashcardContent(currentSet.id, flashcardContent);
+        }
       })
       .catch((error) => {
         console.error('Error autosaving flashcards:', error);
       });
   }
 }
+
+
 
 function startAutoSave() {
   const titleInput = document.getElementById('set-title');
@@ -679,6 +911,7 @@ function loadSetFromURL() {
   }
 }
 
+//When you go into edit mode, loads the flashcards data into the Edit view cards
 function populateSetForm() {
   if (currentSet) {
     document.getElementById('set-title').value = currentSet.title;
@@ -709,6 +942,7 @@ function populateSetForm() {
   }
 }
 
+//TO DO: deprecated for now but meant to differ views from Preview and Edit Mode so listed flashcards looked nicer
 function populateFlashcardForm() {
   const flashcardsContainer = document.getElementById('flashcards-container');
   flashcardsContainer.innerHTML = '';
@@ -737,6 +971,9 @@ function getViewMode() {
   return urlParams.get('mode');
 }
 
+// Section dedicated to PDF processing, OPENAI key autosave & API call, and Card generation
+
+// opens and closes exactly what it says
 function openPDFModal() {
   const modal = document.getElementById('pdf-modal');
   modal.style.display = 'block';
@@ -747,6 +984,22 @@ function closePDFModal() {
   modal.style.display = 'none';
 }
 
+// Saves API key locally so users only have to put it in once.
+function saveAPIKey() {
+  const apiKey = document.getElementById('openai-api-key').value;
+  localStorage.setItem('openaiApiKey', apiKey);
+}
+
+function loadAPIKey() {
+  const apiKey = localStorage.getItem('openaiApiKey');
+  if (apiKey) {
+    document.getElementById('openai-api-key').value = apiKey;
+  }
+}
+
+// Masterminds 1. extractTextFromPDF -> 2. uses generateFlashcardsFromText to make API call,
+// then 3. uses parseFlashcardsFromText to parse response into format we can send to
+// 4. createFlashcard to programmatically add in new flashcards pairs based on response
 async function generateFlashcardsFromPDF() {
   const pdfFile = document.getElementById('pdf-upload').files[0];
   const apiKey = document.getElementById('openai-api-key').value;
@@ -788,6 +1041,7 @@ async function extractTextFromPDF(pdfFile) {
       reject(e);
     };
     reader.readAsArrayBuffer(pdfFile);
+    updateFlashcardPreview()
   });
 }
 
@@ -853,8 +1107,9 @@ function parseFlashcardsFromText(text) {
   }
 
   console.log("Generated flashcards: ", flashcards); // Debug Line
-
+  updateFlashcardPreview()
   return flashcards;
+
 }
 
 function createFlashcard(term = 'term', definition = 'definition') {
@@ -893,8 +1148,11 @@ function createFlashcard(term = 'term', definition = 'definition') {
   });
 
   updateFlashcardPreview();
+  autoSaveSet()
 }
 
+//this is cause model response varies and we might have some symbols that
+// cause the first term of the first flashcard to be empty but work for everything else
 function escapeHtml(text) {
   if (typeof text === 'string') {
     const map = {
@@ -916,16 +1174,8 @@ addFlashcardButton.addEventListener('click', createFlashcard);
 
 
 
-
-
-
-
-
-
-
-
-
-//FML
+//FML - migration away from HTML integrated ON-Click cause it doesn't want to play nice
+//These are all pretty self explanatory
 document.addEventListener('DOMContentLoaded', function() {
   const createFolderButton = document.getElementById('createFolderButton');
   createFolderButton.addEventListener('click', createFolder);
@@ -960,6 +1210,10 @@ document.addEventListener('DOMContentLoaded', function() {
   const openPDFModalButton = document.getElementById('open-pdf-modal');
   openPDFModalButton.addEventListener('click', openPDFModal);
 
+  const apiKeyInput = document.getElementById('openai-api-key');
+  apiKeyInput.addEventListener('input', saveAPIKey);
+
+  loadAPIKey();
   const closePDFModalButton = document.querySelector('.close');
   closePDFModalButton.addEventListener('click', closePDFModal);
 
