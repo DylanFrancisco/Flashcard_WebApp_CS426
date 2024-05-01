@@ -1,4 +1,4 @@
-# README for Flashcard Management System
+# Cards - Flashcard Creation and Management System w/ AI Card Generation
 ## Overview
 This Flashcard Management System is a comprehensive solution for creating, managing, and practicing with flashcards. It is designed to help users organize information into folders and sets, and to facilitate learning through various modes like editing, previewing, and practicing with flashcards.
 
@@ -21,7 +21,6 @@ This Flashcard Management System is a comprehensive solution for creating, manag
   This mode allows users to practice flashcards in a sequential order. 
 
 
-
 ## Installation and Setup
 1. Clone the repository to your local machine.
 2. Ensure you have a modern web browser installed (e.g., Chrome, Firefox).
@@ -34,8 +33,8 @@ This Flashcard Management System is a comprehensive solution for creating, manag
 3. Click the 'Create Folder' button to create the folder.
 
 ## Managing Flashcard Sets
-* To create a set, select a folder and enter the set name. Add flashcards by entering terms and definitions.
-* To delete a set, use the delete button next to the set name.
+1. To create a set, select a folder and enter the set name. Add flashcards by entering terms and definitions.
+2. To delete a set, use the delete button next to the set name.
 
 ## Editing and Viewing Flashcards
 Flashcards can be edited directly within a set.
