@@ -6,11 +6,11 @@ This Flashcard Management System is a comprehensive solution for creating, manag
 * Flashcard Management:
   Users can add, edit, and delete flashcards within sets. Flashcards can include terms, definitions, and images for both the term and definition (side eye to Quizlet).
 * AI Auto-Flashcard Generation:
-  Users can upload PDFs to generate flashcards, which will populate new cards with pre-filled based on the content and optional prompt.
+  Users can upload PDFs to generate flashcards, which will populate new cards with pre-filled based on the content and optional prompt. [Uses OPENAI API]
 * NLP Video Recommenadtion:
   Requires set up of: https://github.com/HNKunwar/NLP-Educational-Video-Recommendations
   Sends flashcard data to server which processes and returns recommended videos based on flashcards. Currently only supports 
-  Math, Biology, Chemistry, Physics, Economics, and (some) Computer Science.
+  Math, Biology, Chemistry, Physics, Economics, and (some) Computer Science. [Uses custom-built NLP Server & Database]
 * AutoSave Feature:
   Changes to flashcards and sets are automatically saved to prevent data loss.
 * Search Functionality:
