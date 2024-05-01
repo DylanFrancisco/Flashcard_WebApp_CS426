@@ -99,6 +99,7 @@ function createSet() {
 function deleteSet(setId) {
   if (currentFolder) {
     currentFolder.sets = currentFolder.sets.filter((set) => set.id !== setId);
+    console.log(set.id);
     fetch(`http://localhost:3000/api/delete-set?setId=${setId}`)
       .then(response => {
         console.log(response)
@@ -164,6 +165,27 @@ function saveSet() {
       .catch(error => {
         console.error('Error:', error);
       });
+
+      for ( let flashcard of currentSet.flashcards) {
+        console.log(flashcard);
+        const id = flashcard.id;
+        const term = flashcard.term;
+        const definition = flashcard.definition;
+        fetch(`http://localhost:3000/api/update-flashcard?cardId=${id}&cardTitle=${term}&cardDef=${definition}`)
+        .then(response => {
+          console.log(response)
+          if (!response.ok) {
+            throw new Error('Failed to update flashcard');
+          }
+          return response.json();
+        })
+        .then(data => {
+          console.log('Success:', data);
+        })
+        .catch(error => {
+          console.error('Error:', error);
+        });
+      }  
     currentFolder.sets.push(set);
     currentSet = set;
     saveData();
@@ -176,7 +198,7 @@ function saveSet() {
 function deleteSet(setId) {
   if (currentFolder) {
     currentFolder.sets = currentFolder.sets.filter((set) => set.id !== setId);
-    fetch(`http://localhost:3000/api/update-set?setId=${setId}`)
+    fetch(`http://localhost:3000/api/delete-set?setId=${setId}`)
       .then(response => {
         console.log(response)
         if (!response.ok) {
@@ -190,6 +212,10 @@ function deleteSet(setId) {
       .catch(error => {
         console.error('Error:', error);
       });
+
+    console.log(currentSet.flashcards)
+
+   
     const flashcards = document.querySelectorAll('.flashcard');
     const flashcardPromises = Array.from(flashcards).map((flashcardElement) => {
       const term = flashcardElement.querySelector('input[type="text"]').value;
@@ -206,6 +232,7 @@ function deleteSet(setId) {
         definitionImage: definitionImageInput.dataset.image || null,
       };
       //TODO: save flashcards
+      console.log(flashcard);
       return new Promise((resolve) => {
         if (termImage) {
           const termReader = new FileReader();
