@@ -4,27 +4,25 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Flashcard App</title>
-  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="./css/style.css">
   <meta name="description" content="">
   <meta property="og:title" content="">
   <meta property="og:type" content="">
   <meta property="og:url" content="">
   <meta property="og:image" content="">
   <meta property="og:image:alt" content="">
-  <link rel="icon" href="/favicon.ico" sizes="any">
-  <link rel="icon" href="/icon.svg" type="image/svg+xml">
-  <link rel="apple-touch-icon" href="icon.png">
-  <link rel="manifest" href="site.webmanifest">
+  <link rel="icon" href="./favicon.ico" sizes="any">
+  <link rel="icon" href="./icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="./icon.png">
+  <link rel="manifest" href="./site.webmanifest">
   <meta name="theme-color" content="#fafafa">
 </head>
 <body>
 <header>
   <nav>
-    <a href="/CS426-Final_Project/index.html"><img src="img/logo.png" id="logo" alt="Logo"></a>
+    <a href="./index.html"><img src="./img/logo.png" id="logo" alt="Logo"></a>
     <ul>
-      <li><a href="/">Home</a></li>
-      <li><a href="/explore">Explore</a></li>
-      <li><a href="/create">Create</a></li>
+
     </ul>
   </nav>
 </header>
@@ -49,11 +47,11 @@
         <div class="card-inner">
           <div class="card-front">
             <p id="questionText"></p>
-            <img id="questionImage" src="img/images.png" alt="" style="display: none;">
+            <img id="questionImage" src="./img/images.png" alt="" style="display: none;">
           </div>
           <div class="card-back">
             <p id="answerText"></p>
-            <img id="answerImage" src="img/images.png" alt="" style="display: none;">
+            <img id="answerImage" src="./img/images.png" alt="" style="display: none;">
           </div>
         </div>
       </div>
@@ -105,14 +103,18 @@
       <button id="practice-set">Practice Set</button>
       <button id="edit-set">Edit Set</button>
     </div>
+    <div id="videoGrid" class="preview-mode">
+      <div class="video-container"></div>
+    </div>
   </div>
 </div>
 <div id="notifications"></div>
 <footer>
   <p>&copy; 2024 Cards - CS426.</p>
 </footer>
-<script src="/js/app.js"></script>
-<script src="app.js"></script>
+<!--<script src="./js/app.js"></script>-->
+<script src="./js/app.js">
+<script src="./app.js"></script>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.9.359/pdf.min.js"></script>
 <script>
